@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3040",
+    "dev": "next dev --turbopack --port 3040",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port 3040",
     "lint": "next lint"
   },
   "dependencies": {

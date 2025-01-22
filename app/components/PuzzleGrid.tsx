@@ -441,6 +441,22 @@ export default function PuzzleGrid({ words, onWordFound, foundWords, subject, on
     return canvas.toDataURL('image/webp', 0.9);
   };
 
+  // Add this helper function to blend colors
+  const blendColors = (foundWords: string[], words: string[], index: number) => {
+    if (foundWords.length === 1) {
+      return `${HIGHLIGHT_COLORS.light[words.findIndex(w => w.toUpperCase() === foundWords[0])]} 
+              ${HIGHLIGHT_COLORS.dark[words.findIndex(w => w.toUpperCase() === foundWords[0])]}`;
+    }
+    
+    // For intersecting words, create a mixed color class
+    return foundWords.map(word => {
+      const wordIndex = words.findIndex(w => w.toUpperCase() === word);
+      return `bg-blend-multiply dark:bg-blend-multiply 
+              ${HIGHLIGHT_COLORS.light[wordIndex]} 
+              ${HIGHLIGHT_COLORS.dark[wordIndex]}`;
+    }).join(' ');
+  };
+
   return (
     <div className="select-none w-full" ref={gridRef}>
       <div className="relative grid grid-cols-15 bg-gray-200 dark:bg-gray-700 rounded-lg p-0.5 max-w-fit mx-auto overflow-hidden">
@@ -449,18 +465,19 @@ export default function PuzzleGrid({ words, onWordFound, foundWords, subject, on
           row.map((cell, j) => {
             const cellKey = `${i}-${j}`;
             const isSelected = selectedCells.has(cellKey);
-            const foundWord = Array.from(foundWords).find(foundWord => {
-              return words.includes(foundWord) && 
-                     placements.some(p => 
-                       p.word.toUpperCase() === foundWord && 
-                       isPartOfWord(p, i, j)
-                     );
-            });
+            
+            // Find all words that use this cell
+            const foundWordsForCell = Array.from(foundWords).filter(foundWord => 
+              words.includes(foundWord) && 
+              placements.some(p => 
+                p.word.toUpperCase() === foundWord && 
+                isPartOfWord(p, i, j)
+              )
+            );
 
-            // Get the word's index to determine its color
-            const wordIndex = foundWord ? words.findIndex(w => w.toUpperCase() === foundWord) : -1;
-            const highlightColor = wordIndex !== -1 
-              ? `${HIGHLIGHT_COLORS.light[wordIndex]} ${HIGHLIGHT_COLORS.dark[wordIndex]}`
+            // Get blended highlight color if multiple words use this cell
+            const highlightColor = foundWordsForCell.length > 0 
+              ? blendColors(foundWordsForCell, words, i)
               : '';
 
             return (
@@ -471,7 +488,7 @@ export default function PuzzleGrid({ words, onWordFound, foundWords, subject, on
                   flex items-center justify-center 
                   font-bold text-xs sm:text-sm md:text-base 
                   transition-colors duration-200
-                  ${foundWord 
+                  ${foundWordsForCell.length > 0 
                     ? highlightColor
                     : isSelected 
                       ? 'bg-blue-200 dark:bg-blue-600' 
@@ -480,7 +497,7 @@ export default function PuzzleGrid({ words, onWordFound, foundWords, subject, on
                   cursor-pointer select-none
                   relative z-10
                 `}
-                onMouseDown={() => !foundWord && handleMouseDown(i, j)}
+                onMouseDown={() => foundWordsForCell.length === 0 && handleMouseDown(i, j)}
                 onMouseEnter={() => handleMouseEnter(i, j)}
               >
                 {cell}

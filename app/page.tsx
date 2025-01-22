@@ -115,13 +115,22 @@ export default function Home() {
         <form onSubmit={handleGeneratePuzzle} className="mb-8">
           <div className="flex gap-4">
             <div className="flex-1 relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center">
+                <Image
+                  src="/xword_icon.png"
+                  alt=""
+                  width={20}
+                  height={20}
+                  className="opacity-60"
+                />
+              </div>
               <input
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value.slice(0, MAX_CHARS))}
                 placeholder="Enter a subject (e.g., 'blockchain')"
                 maxLength={MAX_CHARS}
-                className="w-full p-3 pr-24 rounded-lg border border-gray-300 dark:border-gray-700 
+                className="w-full p-3 pl-11 pr-24 rounded-lg border border-gray-300 dark:border-gray-700 
                          bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 

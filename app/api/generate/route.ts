@@ -12,49 +12,39 @@ export async function POST(req: Request) {
     const maxAttempts = 3;
 
     while (attempts < maxAttempts) {
+      const prompt = `Generate 10 unique words related to "${subject}". 
+      CRITICAL: Return ONLY comma-separated words with NO numbers, periods, or special formatting.
+      Requirements:
+      - Each word MUST be between 3-15 characters long (STRICTLY enforced, no exceptions)
+      - NO two-letter words (like HP, LG, UP, IT, IS, etc.)
+      - Words must be common and recognizable
+      - DO NOT include the word "${subject}" itself in the list
+      - No proper nouns (except for relevant brands with 3+ letters)
+      - No abbreviations, acronyms, or hyphenated words
+      - No contractions (like isn't, don't)
+      - Words should be single words, no spaces
+      - Words should be suitable for all ages
+      - You MUST return EXACTLY 10 words, no more, no less
+      EXACT FORMAT REQUIRED: word,word,word,word,word,word,word,word,word,word`;
+
       const completion = await openai.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: 
-              "You are a word search puzzle generator. Generate EXACTLY 10 words following these strict rules:\n\n" +
-              "CRITICAL RULES:\n" +
-              "- EXACTLY 10 words total\n" +
-              "- Each word MUST be 3-12 letters long\n" +
-              "- NO compound words (e.g., 'smartcontract' is not allowed, use 'smart' or 'contract' instead)\n" +
-              "- NO special characters, numbers, or spaces\n" +
-              "- Only basic English letters A-Z\n" +
-              "- Words must be related to the subject\n\n" +
-              "FORMAT:\n" +
-              "- One word per line\n" +
-              "- All UPPERCASE\n" +
-              "- Just the words, no numbering or bullets\n\n" +
-              "Example of VALID words:\n" +
-              "BLOCK\n" +
-              "CHAIN\n" +
-              "LEDGER\n" +
-              "CRYPTO\n" +
-              "(continue until exactly 10 words)"
-          },
-          {
-            role: "user",
-            content: `Generate exactly 10 simple words (no compound words) related to: ${subject}`
-          }
-        ],
+        messages: [{ role: "user", content: prompt }],
         model: "gpt-3.5-turbo",
         temperature: 0.7,
-        max_tokens: 200,
+        max_tokens: 100,
       });
 
       const content = completion.choices[0].message.content?.trim() || '';
       console.log('Raw response:', content);
 
       let wordList = content
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0)
+        .replace(/\d+\.\s*/g, '')  // Remove any numbered list formatting
+        .replace(/\s+/g, '')       // Remove all whitespace
+        .split(',')
+        .map(word => word.trim())
+        .filter(word => word.length > 0)
         .map(word => word.replace(/[^A-Za-z]/g, '').toUpperCase())
-        .filter(word => word.length >= 3 && word.length <= 12);
+        .filter(word => word.length >= 3 && word.length <= 15);
 
       console.log('Processed words:', wordList);
 
@@ -67,11 +57,8 @@ export async function POST(req: Request) {
       attempts++;
     }
 
-    console.error(`Failed to generate exactly 10 words after ${maxAttempts} attempts`);
     return NextResponse.json(
-      { 
-        error: `Failed to generate exactly 10 words after ${maxAttempts} attempts. Please try again.`
-      },
+      { error: `Failed to generate exactly 10 words after ${maxAttempts} attempts. Please try again.` },
       { status: 500 }
     );
 
