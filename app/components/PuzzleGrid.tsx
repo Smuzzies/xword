@@ -23,6 +23,33 @@ interface WordPlacement {
   direction: 'horizontal' | 'vertical' | 'diagonal' | 'reverse-horizontal' | 'reverse-vertical' | 'reverse-diagonal';
 }
 
+const HIGHLIGHT_COLORS = {
+  light: [
+    'bg-green-200 text-green-800',  // Green
+    'bg-teal-200 text-teal-800',    // Teal
+    'bg-cyan-200 text-cyan-800',    // Cyan
+    'bg-sky-200 text-sky-800',      // Sky
+    'bg-blue-200 text-blue-800',    // Blue
+    'bg-indigo-200 text-indigo-800',// Indigo
+    'bg-violet-200 text-violet-800',// Violet
+    'bg-purple-200 text-purple-800',// Purple
+    'bg-fuchsia-200 text-fuchsia-800', // Fuchsia
+    'bg-pink-200 text-pink-800',    // Pink
+  ],
+  dark: [
+    'dark:bg-green-800 dark:text-green-200',
+    'dark:bg-teal-800 dark:text-teal-200',
+    'dark:bg-cyan-800 dark:text-cyan-200',
+    'dark:bg-sky-800 dark:text-sky-200',
+    'dark:bg-blue-800 dark:text-blue-200',
+    'dark:bg-indigo-800 dark:text-indigo-200',
+    'dark:bg-violet-800 dark:text-violet-200',
+    'dark:bg-purple-800 dark:text-purple-200',
+    'dark:bg-fuchsia-800 dark:text-fuchsia-200',
+    'dark:bg-pink-800 dark:text-pink-200',
+  ]
+};
+
 export default function PuzzleGrid({ words, onWordFound, foundWords, subject, onDownload }: PuzzleGridProps) {
   const [grid, setGrid] = useState<string[][]>([]);
   const [placements, setPlacements] = useState<WordPlacement[]>([]);
@@ -281,7 +308,7 @@ export default function PuzzleGrid({ words, onWordFound, foundWords, subject, on
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
 
-    return `XWord: Find the ${titleCase}`;
+    return `Search for words related to ${titleCase}`;
   };
 
   const createDownloadableImage = async (
@@ -298,44 +325,60 @@ export default function PuzzleGrid({ words, onWordFound, foundWords, subject, on
     const padding = 40;
     const gridSize = grid.length * cellSize;
     const wordListHeight = 120;
+    const logoHeight = 60; // Height for logo area
     
     canvas.width = gridSize + (padding * 2);
-    canvas.height = gridSize + wordListHeight + (padding * 2);
+    canvas.height = gridSize + wordListHeight + logoHeight + (padding * 2); // Added logoHeight
     
-    // Set colors based on theme - removed background color
+    // Set colors based on theme
     const textColor = darkMode ? '#ffffff' : '#000000';
     const gridBgColor = darkMode ? '#2a2a2a' : '#f3f4f6';
     const cellBgColor = darkMode ? '#404040' : '#ffffff';
     const borderColor = darkMode ? '#404040' : '#e5e7eb';
     
-    // Make canvas background transparent (don't fill background)
+    // Make canvas background transparent
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Load and draw logo
+    const logo = new Image();
+    await new Promise((resolve, reject) => {
+      logo.onload = resolve;
+      logo.onerror = reject;
+      logo.src = '/xword_logo_print.webp';
+    });
     
-    // Draw title
+    // Draw logo centered at the top
+    const logoWidth = (logo.width * logoHeight) / logo.height; // maintain aspect ratio
+    const logoX = (canvas.width - logoWidth) / 2;
+    ctx.drawImage(logo, logoX, padding, logoWidth, logoHeight);
+    
+    // Draw title with smaller, bold font
     ctx.fillStyle = textColor;
-    ctx.font = 'bold 24px Arial';
+    ctx.font = 'bold 20px Arial'; // Reduced from 24px
     ctx.textAlign = 'center';
-    ctx.fillText(generateTitle(subject), canvas.width / 2, padding);
+    ctx.fillText(generateTitle(subject), canvas.width / 2, padding + logoHeight + 30);
+    
+    // Adjust word list position to account for logo
+    const wordListY = padding + logoHeight + 60;
     
     // Draw word list container with border
-    const wordListY = padding + 30;
     ctx.fillStyle = gridBgColor;
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.roundRect(padding, wordListY, canvas.width - (padding * 2), 65, 8); // Slightly taller container
+    ctx.roundRect(padding, wordListY, canvas.width - (padding * 2), 65, 8);
     ctx.fill();
     ctx.stroke();
     
     // Draw word list in two rows
     ctx.fillStyle = textColor;
-    ctx.font = 'bold 14px Arial'; // Made font bold
+    ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'left';
     
     const wordsPerRow = 5;
     const wordWidth = (canvas.width - (padding * 2)) / wordsPerRow;
     const wordPadding = 10;
-    const rowHeight = 28; // Increased space between rows
+    const rowHeight = 28;
     
     words.forEach((word, index) => {
       const row = Math.floor(index / wordsPerRow);
@@ -351,24 +394,23 @@ export default function PuzzleGrid({ words, onWordFound, foundWords, subject, on
       let fontSize = 14;
       if (wordMetrics.width > maxWordWidth) {
         fontSize = Math.floor((maxWordWidth / wordMetrics.width) * 14);
-        ctx.font = `bold ${fontSize}px Arial`; // Keep bold when adjusting size
+        ctx.font = `bold ${fontSize}px Arial`;
       }
       
       ctx.fillText(word.toUpperCase(), x, y);
       
       // Reset font size for next word
-      ctx.font = 'bold 14px Arial'; // Reset to bold
+      ctx.font = 'bold 14px Arial';
     });
     
-    // Draw grid background with border (now with more space above)
+    // Draw grid background with border
+    const gridY = wordListY + 85; // Adjust grid position to be below word list
+    
     ctx.fillStyle = gridBgColor;
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = 2;
-    const gridX = padding;
-    const gridY = wordListHeight + padding + 10; // Added extra padding above grid
-    
     ctx.beginPath();
-    ctx.roundRect(gridX - 10, gridY - 10, gridSize + 20, gridSize + 20, 8);
+    ctx.roundRect(padding - 10, gridY - 10, gridSize + 20, gridSize + 20, 8);
     ctx.fill();
     ctx.stroke();
     
@@ -378,7 +420,7 @@ export default function PuzzleGrid({ words, onWordFound, foundWords, subject, on
         // Draw cell background
         ctx.fillStyle = cellBgColor;
         ctx.fillRect(
-          gridX + (j * cellSize),
+          padding + (j * cellSize),
           gridY + (i * cellSize),
           cellSize - 1,
           cellSize - 1
@@ -390,7 +432,7 @@ export default function PuzzleGrid({ words, onWordFound, foundWords, subject, on
         ctx.textAlign = 'center';
         ctx.fillText(
           cell,
-          gridX + (j * cellSize) + (cellSize / 2),
+          padding + (j * cellSize) + (cellSize / 2),
           gridY + (i * cellSize) + (cellSize / 2) + 7
         );
       });
@@ -407,13 +449,19 @@ export default function PuzzleGrid({ words, onWordFound, foundWords, subject, on
           row.map((cell, j) => {
             const cellKey = `${i}-${j}`;
             const isSelected = selectedCells.has(cellKey);
-            const isFoundCell = Array.from(foundWords).some(foundWord => {
+            const foundWord = Array.from(foundWords).find(foundWord => {
               return words.includes(foundWord) && 
                      placements.some(p => 
                        p.word.toUpperCase() === foundWord && 
                        isPartOfWord(p, i, j)
                      );
             });
+
+            // Get the word's index to determine its color
+            const wordIndex = foundWord ? words.findIndex(w => w.toUpperCase() === foundWord) : -1;
+            const highlightColor = wordIndex !== -1 
+              ? `${HIGHLIGHT_COLORS.light[wordIndex]} ${HIGHLIGHT_COLORS.dark[wordIndex]}`
+              : '';
 
             return (
               <div
@@ -423,8 +471,8 @@ export default function PuzzleGrid({ words, onWordFound, foundWords, subject, on
                   flex items-center justify-center 
                   font-bold text-xs sm:text-sm md:text-base 
                   transition-colors duration-200
-                  ${isFoundCell 
-                    ? 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200' 
+                  ${foundWord 
+                    ? highlightColor
                     : isSelected 
                       ? 'bg-blue-200 dark:bg-blue-600' 
                       : 'bg-white dark:bg-gray-800'
@@ -432,7 +480,7 @@ export default function PuzzleGrid({ words, onWordFound, foundWords, subject, on
                   cursor-pointer select-none
                   relative z-10
                 `}
-                onMouseDown={() => !isFoundCell && handleMouseDown(i, j)}
+                onMouseDown={() => !foundWord && handleMouseDown(i, j)}
                 onMouseEnter={() => handleMouseEnter(i, j)}
               >
                 {cell}

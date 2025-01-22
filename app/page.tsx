@@ -4,6 +4,29 @@ import { useState, useRef } from "react";
 import Image from "next/image";
 import PuzzleGrid from './components/PuzzleGrid';
 
+function GameStatus({ total, found }: { total: number; found: number }) {
+  const remaining = total - found;
+  
+  return (
+    <div className="p-4 bg-[#374151] rounded-lg shadow">
+      {remaining > 0 ? (
+        <p className="text-[#ccff00]">
+          {remaining} word{remaining !== 1 ? 's' : ''} remaining
+        </p>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-[#ccff00] font-semibold">
+            🎉 Puzzle Complete!
+          </p>
+          <p className="text-[#ccff00]">
+            Press Reset to start a new game
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   const [subject, setSubject] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -11,11 +34,13 @@ export default function Home() {
   const [error, setError] = useState<string>('');
   const [foundWords, setFoundWords] = useState<Set<string>>(new Set());
   const downloadRef = useRef<(() => Promise<string>) | undefined>();
+  const MAX_CHARS = 50;
 
   const handleGeneratePuzzle = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setFoundWords(new Set());
 
     try {
       const response = await fetch('/api/generate', {
@@ -71,7 +96,16 @@ export default function Home() {
   return (
     <div className="min-h-screen p-8 bg-background">
       <header className="mb-8 text-center">
-        <h1 className="text-4xl font-bold mb-2">XWord</h1>
+        <div className="flex justify-center mb-2">
+          <Image
+            src="/xword_logo.webp"
+            alt="XWord"
+            width={300}
+            height={90}
+            priority
+            className="h-auto"
+          />
+        </div>
         <p className="text-gray-600 dark:text-gray-400">
           Generate custom word search puzzles about any topic
         </p>
@@ -80,18 +114,25 @@ export default function Home() {
       <main className="max-w-4xl mx-auto">
         <form onSubmit={handleGeneratePuzzle} className="mb-8">
           <div className="flex gap-4">
-            <input
-              type="text"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder="Enter a subject (e.g., 'blockchain')"
-              className="flex-1 p-3 rounded-lg border border-gray-300 dark:border-gray-700 
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value.slice(0, MAX_CHARS))}
+                placeholder="Enter a subject (e.g., 'blockchain')"
+                maxLength={MAX_CHARS}
+                className="w-full p-3 pr-24 rounded-lg border border-gray-300 dark:border-gray-700 
                          bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
-            />
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 
+                             bg-white dark:bg-gray-800 px-1">
+                {MAX_CHARS - subject.length} chars left
+              </span>
+            </div>
             <button
               type="submit"
               disabled={isLoading || !subject.trim()}
-              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 
+              className="px-6 py-3 bg-[#ccff00] text-black rounded-lg hover:bg-[#b3e600] 
                        disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Generating...' : 'Generate Puzzle'}
@@ -130,6 +171,11 @@ export default function Home() {
                   })}
                 </ul>
               </div>
+              
+              <GameStatus 
+                total={words.length} 
+                found={foundWords.size} 
+              />
             </div>
           )}
 
@@ -145,18 +191,25 @@ export default function Home() {
                 />
               </div>
               
-              <div className="flex justify-between">
+              <div className="flex justify-between w-full gap-4">
                 <button
-                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                  className="flex-1 px-4 py-2 bg-[#ccff00] text-black rounded hover:bg-[#b3e600] 
+                            flex items-center justify-center gap-2 transition-colors"
                   onClick={handleDownload}
                 >
+                  <i className="fas fa-download"></i>
                   Download Puzzle
                 </button>
                 
                 <button
-                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-                  onClick={() => setWords([])}
+                  className="flex-1 px-4 py-2 bg-[#ccff00] text-black rounded hover:bg-[#b3e600] 
+                            flex items-center justify-center gap-2 transition-colors"
+                  onClick={() => {
+                    setWords([]);
+                    setFoundWords(new Set());
+                  }}
                 >
+                  <i className="fas fa-rotate-left"></i>
                   Reset
                 </button>
               </div>
